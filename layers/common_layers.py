@@ -169,6 +169,12 @@ class TFUpsample():
             self.method = tf.image.ResizeMethod.BILINEAR
 
     def __call__(self, inputs):
+        if self.method==tf.image.ResizeMethod.NEAREST_NEIGHBOR:
+            bs, h, w, ch=inputs.shape
+            inputs=tf.stack((inputs,inputs),axis=3)
+            inputs = tf.stack((inputs, inputs), axis=2)
+            inputs = tf.reshape(inputs,(bs,2*h,2*w,ch))
+            return inputs
         return tf.image.resize(inputs,  self.scale, method=self.method)
 
 @OPERATOR.register_operator("Constant")
@@ -219,6 +225,12 @@ class TFResize():
             self.method = tf.image.ResizeMethod.BILINEAR
 
     def __call__(self, inputs):
+        if self.method==tf.image.ResizeMethod.NEAREST_NEIGHBOR:
+            bs, h, w, ch=inputs.shape
+            inputs=tf.stack((inputs,inputs),axis=3)
+            inputs = tf.stack((inputs, inputs), axis=2)
+            inputs = tf.reshape(inputs,(bs,2*h,2*w,ch))
+            return inputs
         return tf.image.resize(inputs,  self.scale, method=self.method)
 
 @OPERATOR.register_operator("Gemm")

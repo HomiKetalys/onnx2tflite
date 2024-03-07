@@ -20,6 +20,17 @@ class RandomLoader(object):
             raise StopIteration()
         self.index += 1
         return [np.random.randn(*self.target_size).astype(np.float32)]
+
+def get_imgs(img_root):
+    img_paths=[]
+    names=os.listdir(img_root)
+    for name in names:
+        path=os.path.join(img_root,name)
+        if os.path.isdir(path):
+            img_paths+=get_imgs(path)
+        else:
+            img_paths.append(path)
+    return img_paths
     
 class ImageLoader(object):
     '''
@@ -35,7 +46,7 @@ class ImageLoader(object):
         if mean is None:
             mean = [123.675, 116.28, 103.53]
         assert os.path.exists(img_root), F"{img_root} is not exists, please check!"
-        self.fns = os.listdir(img_root)
+        self.fns = get_imgs(img_root)
         self.fns = list(filter(lambda fn: os.path.splitext(fn)[-1].lower() in self.VALID_FORMAT, self.fns))
         self.nums = len(self.fns)
         assert self.nums > 0, f"No images detected in {img_root}."
@@ -46,7 +57,7 @@ class ImageLoader(object):
             self.nums=100
         else:
             LOG.info(f"{self.nums} images detected.")
-        self.fns = [os.path.join(img_root, fn) for fn in self.fns]
+        # self.fns = [os.path.join(img_root, fn) for fn in self.fns]
 
         self.batch, self.size = target_size[0], target_size[1:-1]
         if isinstance(mean, list):
@@ -58,6 +69,7 @@ class ImageLoader(object):
         self.separation = separation
         self.separation_scale = separation_scale
         self.onnx_path = onnx_path
+        random.seed(1)
 
     def __iter__(self):
         self.index = 0
@@ -76,7 +88,10 @@ class ImageLoader(object):
             if self.separation > 0:
                 _input = cv2.resize(_input, (self.separation_scale * w, self.separation_scale * h))
                 _input = _input.astype(np.float32)
-                _input = _input / 255
+                if self.mean is not None:
+                    _input -= self.mean
+                if self.std is not None:
+                    _input /= self.std
                 i = random.randint(0, self.separation_scale-1)
                 j = random.randint(0, self.separation_scale-1)
                 _input = _input[
@@ -88,7 +103,10 @@ class ImageLoader(object):
                 separation=-self.separation
                 _input = cv2.resize(_input, (2**separation * w, 2**separation * h))
                 _input = _input.astype(np.float32)
-                _input = _input / 255
+                if self.mean is not None:
+                    _input -= self.mean
+                if self.std is not None:
+                    _input /= self.std
                 ort_sess1 = ort.InferenceSession(self.onnx_path.replace("post","front"))
                 _input = _input[None, :, :, :]
                 _input = np.transpose(_input, (0, 3, 1, 2))
