@@ -12,7 +12,7 @@ LOG = logging.getLogger("converter running:")
 def onnx_converter(onnx_model_path: str, output_path: str = None,
                    input_node_names: list = None, output_node_names: list = None,
                    need_simplify: bool = True, target_formats=None,
-                   native_groupconv: bool = False,
+                   native_groupconv: bool = True,
                    weight_quant: bool = False, int8_model: bool = False, image_root: str = None,
                    int8_mean=None, int8_std=None, separation=0, separation_scale=2, ) -> float:
     if target_formats is None:

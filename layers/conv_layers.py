@@ -20,7 +20,7 @@ LOG = logging.getLogger("convolution_layers :")
 # to support older version of tflite.
 # Using the native keras implementation results in a simplified tflite graph and supposed to run faster.
 # See https://github.com/MPolaris/onnx2tflite/issues/19 for more details.
-USE_NATIVE_GROUP_CONV = False
+USE_NATIVE_GROUP_CONV = True
 
 @OPERATOR.register_operator("ConvTranspose")
 class TFConvTranspose():
@@ -204,7 +204,9 @@ class TFGroupConv():
 
         self.convs = []
         for i in range(group):
+            self.pad = None
             if pads is not None and max(pads) == 1 and max(strides) == 1:
+
                 self.convs.append(keras.layers.Conv2D(
                                 out_channel_num, kernel_size, strides, 'SAME', use_bias=False if bias is None else True,
                                 dilation_rate=dilations,
@@ -214,7 +216,6 @@ class TFGroupConv():
                                     out_channel_num, kernel_size, strides, 'VALID', use_bias=False if bias is None else True,
                                     dilation_rate=dilations,
                                     weights=[weights[:, :, :, i*out_channel_num:(i+1)*out_channel_num]] if bias is None else [weights[:, :, :, i*out_channel_num:(i+1)*out_channel_num], bias[i*out_channel_num:(i+1)*out_channel_num]]))
-                self.pad =None
                 if pads is not None and (max(pads) != 0 and not (max(pads) == 1 and max(strides) == 1)):
                     padding = None
                     if len(pads) == 2 and (pads[0] > 0 or pads[1] > 0):
