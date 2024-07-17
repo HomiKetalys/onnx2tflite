@@ -9,6 +9,7 @@ from common_utils.onnx2tflite.layers.dimension_utils import intfloat_to_list
 
 LOG = logging.getLogger("common_layers :")
 
+
 @OPERATOR.register_operator("BatchNormalization")
 class TFBatchNormalization():
     def __init__(self, tensor_grap, node_weights, node_inputs, node_attribute, *args, **kwargs):
@@ -27,6 +28,7 @@ class TFBatchNormalization():
     def __call__(self, inputs):
         return self.bn(inputs)
 
+
 @OPERATOR.register_operator("InstanceNormalization")
 class TFInstanceNormalization():
     def __init__(self, tensor_grap, node_weights, node_inputs, node_attribute, *args, **kwargs):
@@ -36,10 +38,11 @@ class TFInstanceNormalization():
         self.bias = node_weights[node_inputs[2]]
 
     def __call__(self, inputs):
-        axes = tuple(range(1, len(inputs.shape)-1))
+        axes = tuple(range(1, len(inputs.shape) - 1))
         mean = tf.reduce_mean(inputs, axis=axes, keepdims=True)
-        var = tf.math.reduce_variance(inputs, axis= axes, keepdims=True)
-        return self.scale*(inputs - mean)/tf.sqrt(var + self.epsilon) + self.bias
+        var = tf.math.reduce_variance(inputs, axis=axes, keepdims=True)
+        return self.scale * (inputs - mean) / tf.sqrt(var + self.epsilon) + self.bias
+
 
 @OPERATOR.register_operator("Pad")
 class TFPad():
@@ -56,6 +59,7 @@ class TFPad():
 
     def __call__(self, inputs):
         return tf.pad(inputs, self.pad, mode=self.model)
+
 
 @OPERATOR.register_operator("Clip")
 class TFClip():
@@ -75,13 +79,15 @@ class TFClip():
             return tf.nn.relu6(inputs)
         return tf.clip_by_value(inputs, self.min, self.max)
 
+
 @OPERATOR.register_operator("TFGlobalMaxPool")
 class TFGlobalMaxPool():
     def __init__(self, *args, **kwargs) -> None:
         super().__init__()
 
     def __call__(self, inputs):
-        return tf.reduce_max(inputs, axis=[i for i in range(1, len(inputs.shape)-1)], keepdims=True)
+        return tf.reduce_max(inputs, axis=[i for i in range(1, len(inputs.shape) - 1)], keepdims=True)
+
 
 @OPERATOR.register_operator("GlobalAveragePool")
 class TFGlobalAveragePool():
@@ -89,7 +95,8 @@ class TFGlobalAveragePool():
         super().__init__()
 
     def __call__(self, inputs):
-        return tf.reduce_mean(inputs, axis=[i for i in range(1, len(inputs.shape)-1)], keepdims=True)
+        return tf.reduce_mean(inputs, axis=[i for i in range(1, len(inputs.shape) - 1)], keepdims=True)
+
 
 @OPERATOR.register_operator("AveragePool")
 class TFAveragePool():
@@ -102,18 +109,19 @@ class TFAveragePool():
         pads = intfloat_to_list(node_attribute.get("pads", [0, 0, 0, 0]), 4)
 
         func = math.floor if ceil_mode == 0 else math.ceil
-        
+
         pad_mode = "SAME"
         input_shape = tensor_grap[node_inputs[0]].shape
-        for i in range(len(input_shape)-2):
-            pad_shape = pads[i] + pads[i+2]
-            output_shape_raw = (input_shape[1+i]+pad_shape-((kernel_shape[i]-1)*dilations[i]+1))/strides[i]+1
-            if func(output_shape_raw) != input_shape[1+i]:
+        for i in range(len(input_shape) - 2):
+            pad_shape = pads[i] + pads[i + 2]
+            output_shape_raw = (input_shape[1 + i] + pad_shape - ((kernel_shape[i] - 1) * dilations[i] + 1)) / strides[
+                i] + 1
+            if func(output_shape_raw) != input_shape[1 + i]:
                 pad_mode = "VALID"
                 break
-        
+
         self.avg_pool = keras.layers.AveragePooling2D(pool_size=kernel_shape, strides=strides, padding=pad_mode)
-        
+
         self.pad = None
         if pad_mode == "VALID" and pads is not None and np.sum(pads) > 0:
             self.pad = keras.layers.ZeroPadding2D(padding=((pads[0], pads[2]), (pads[1], pads[3])))
@@ -122,6 +130,7 @@ class TFAveragePool():
         if self.pad:
             inputs = self.pad(inputs)
         return self.avg_pool(inputs)
+
 
 @OPERATOR.register_operator("MaxPool")
 class TFMaxPool():
@@ -137,15 +146,16 @@ class TFMaxPool():
 
         pad_mode = "SAME"
         input_shape = tensor_grap[node_inputs[0]].shape
-        for i in range(len(input_shape)-2):
-            pad_shape = pads[i] + pads[i+2]
-            output_shape_raw = (input_shape[1+i]+pad_shape-((kernel_shape[i]-1)*dilations[i]+1))/strides[i]+1
-            if func(output_shape_raw) != input_shape[1+i]:
+        for i in range(len(input_shape) - 2):
+            pad_shape = pads[i] + pads[i + 2]
+            output_shape_raw = (input_shape[1 + i] + pad_shape - ((kernel_shape[i] - 1) * dilations[i] + 1)) / strides[
+                i] + 1
+            if func(output_shape_raw) != input_shape[1 + i]:
                 pad_mode = "VALID"
                 break
 
         self.max_pool = keras.layers.MaxPool2D(pool_size=kernel_shape, strides=strides, padding=pad_mode)
-        
+
         self.pad = None
         if pad_mode == "VALID" and pads is not None and np.sum(pads) > 0:
             self.pad = keras.layers.ZeroPadding2D(padding=((pads[0], pads[2]), (pads[1], pads[3])))
@@ -155,6 +165,7 @@ class TFMaxPool():
             inputs = self.pad(inputs)
         return self.max_pool(inputs)
 
+
 @OPERATOR.register_operator("Upsample")
 class TFUpsample():
     def __init__(self, tensor_grap, node_weights, node_inputs, node_attribute, *args, **kwargs):
@@ -162,20 +173,21 @@ class TFUpsample():
         _, h, w, _ = tensor_grap[node_inputs[0]].shape
         scale = node_weights[node_inputs[1]]
 
-        self.scale = (int(h*scale[2]), int(w*scale[3]))
+        self.scale = (int(h * scale[2]), int(w * scale[3]))
         if node_attribute.get("mode", "nearest").lower() == 'nearest':
             self.method = tf.image.ResizeMethod.NEAREST_NEIGHBOR
         else:
             self.method = tf.image.ResizeMethod.BILINEAR
 
     def __call__(self, inputs):
-        if self.method==tf.image.ResizeMethod.NEAREST_NEIGHBOR:
-            bs, h, w, ch=inputs.shape
-            inputs=tf.stack((inputs,inputs),axis=3)
-            inputs = tf.stack((inputs, inputs), axis=2)
-            inputs = tf.reshape(inputs,(bs,2*h,2*w,ch))
+        bs, h, w, ch = inputs.shape
+        if self.method == tf.image.ResizeMethod.NEAREST_NEIGHBOR and self.scale[0] % h == 0 and self.scale[1] % w == 0:
+            inputs = tf.stack([inputs for i in range(0, self.scale[1] // w)], axis=3)
+            inputs = tf.stack([inputs for i in range(0, self.scale[0] // h)], axis=2)
+            inputs = tf.reshape(inputs, (bs, self.scale[0], self.scale[1], ch))
             return inputs
-        return tf.image.resize(inputs,  self.scale, method=self.method)
+        return tf.image.resize(inputs, self.scale, method=self.method)
+
 
 @OPERATOR.register_operator("Constant")
 class TFConstant():
@@ -186,13 +198,14 @@ class TFConstant():
     def __call__(self, *args, **kwargs):
         return self.val
 
+
 @OPERATOR.register_operator("ScatterND")
 class TFScatterND():
     def __init__(self, tensor_grap, node_weights, node_inputs, node_attribute, *args, **kwargs):
         super().__init__()
         self.indices = node_weights[node_inputs[1]]
         shape_len = len(tensor_grap[node_inputs[0]].shape)
-        self.trans_in = [0, shape_len-1] + [n for n in range(1, shape_len-1)]
+        self.trans_in = [0, shape_len - 1] + [n for n in range(1, shape_len - 1)]
         self.trans_out = [0] + [n for n in range(2, shape_len)] + [1]
         if node_inputs[2] in tensor_grap:
             self.updates = tf.transpose(tensor_grap[node_inputs[2]], perm=self.trans_in)
@@ -205,6 +218,7 @@ class TFScatterND():
         inputs = tf.transpose(inputs, perm=self.trans_out)
         return inputs
 
+
 @OPERATOR.register_operator("Resize")
 class TFResize():
     def __init__(self, tensor_grap, node_weights, node_inputs, node_attribute, *args, **kwargs):
@@ -213,10 +227,10 @@ class TFResize():
             _, _, nh, nw = node_weights[node_inputs[-1]]
             if len(node_inputs) != 4:
                 _, h, w, _ = tensor_grap[node_inputs[0]].shape
-                nh, nw = int(h*nh), int(w*nw)
+                nh, nw = int(h * nh), int(w * nw)
             self.scale = (nh, nw)
         else:
-            scales = tensor_grap[node_inputs[0]].shape[1:3]*tensor_grap[node_inputs[2]][2:3]
+            scales = tensor_grap[node_inputs[0]].shape[1:3] * tensor_grap[node_inputs[2]][2:3]
             self.scale = scales
 
         if node_attribute.get("mode", "nearest").lower() == 'nearest':
@@ -225,19 +239,21 @@ class TFResize():
             self.method = tf.image.ResizeMethod.BILINEAR
 
     def __call__(self, inputs):
-        if self.method==tf.image.ResizeMethod.NEAREST_NEIGHBOR:
-            bs, h, w, ch=inputs.shape
-            inputs=tf.stack((inputs,inputs),axis=3)
-            inputs = tf.stack((inputs, inputs), axis=2)
-            inputs = tf.reshape(inputs,(bs,2*h,2*w,ch))
+        bs, h, w, ch = inputs.shape
+        if self.method == tf.image.ResizeMethod.NEAREST_NEIGHBOR and self.scale[0] % h == 0 and self.scale[1] % w == 0:
+            inputs = tf.stack([inputs for i in range(0, self.scale[1] // w)], axis=3)
+            inputs = tf.stack([inputs for i in range(0, self.scale[0] // h)], axis=2)
+            inputs = tf.reshape(inputs, (bs, self.scale[0], self.scale[1], ch))
             return inputs
-        return tf.image.resize(inputs,  self.scale, method=self.method)
+        return tf.image.resize(inputs, self.scale, method=self.method)
+
 
 @OPERATOR.register_operator("Gemm")
 class TFGemm():
     '''
         全连接函数, torch.linear, tf.layers.dense, keras.layers.Dense
     '''
+
     def __init__(self, tensor_grap, node_weights, node_inputs, node_attribute, *args, **kwargs) -> None:
         super().__init__()
         if len(node_inputs) > 2:
@@ -247,10 +263,11 @@ class TFGemm():
 
         self.dense = keras.layers.Dense(weights[0].shape[1],
                                         weights=weights,
-                                        use_bias=len(weights)==2)
+                                        use_bias=len(weights) == 2)
 
     def __call__(self, inputs):
         return self.dense(inputs)
+
 
 @OPERATOR.register_operator("Identity")
 class TFIdentity():
@@ -260,16 +277,19 @@ class TFIdentity():
     def __call__(self, inputs):
         return inputs
 
+
 @OPERATOR.register_operator("Dropout")
 class TFDropout():
     '''
         Dropout will be ignored in deployment.
     '''
+
     def __init__(self, *args, **kwargs):
         super().__init__()
 
     def __call__(self, inputs):
         return inputs
+
 
 @OPERATOR.register_operator("Cast")
 class TFCast():
@@ -278,27 +298,27 @@ class TFCast():
         self.cast_to = int(node_attribute.get("to", 1))
         assert self.cast_to > 0 and self.cast_to < 12, f"Unknown cast type [{self.cast_to}]"
         self.np_cast_map = {
-                1: np.float32,
-                2: np.uint8,
-                3: np.int8,
-                5: np.int16,
-                6: np.int32,
-                7: np.int64,
-                9: np.bool_,
-                10: np.float16,
-                11: np.double,
-            }
+            1: np.float32,
+            2: np.uint8,
+            3: np.int8,
+            5: np.int16,
+            6: np.int32,
+            7: np.int64,
+            9: np.bool_,
+            10: np.float16,
+            11: np.double,
+        }
         self.tf_cast_map = {
-                1: tf.float32,
-                2: tf.uint8,
-                3: tf.int8,
-                5: tf.int16,
-                6: tf.int32,
-                7: tf.int64,
-                9: tf.bool,
-                10: tf.float16,
-                11: tf.double,
-            }
+            1: tf.float32,
+            2: tf.uint8,
+            3: tf.int8,
+            5: tf.int16,
+            6: tf.int32,
+            7: tf.int64,
+            9: tf.bool,
+            10: tf.float16,
+            11: tf.double,
+        }
 
     def __call__(self, inputs):
         if isinstance(inputs, list):

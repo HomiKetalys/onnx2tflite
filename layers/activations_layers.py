@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
+# from tensorflow import keras
+import keras
 
 from common_utils.onnx2tflite.layers.dimension_utils import channel_to_last_dimension, tensor_NCD_to_NDC_format
 from common_utils.onnx2tflite.utils.op_registry import OPERATOR
@@ -22,6 +23,7 @@ class TFHardSigmoid():
 
     def __call__(self, inputs):
         return tf.clip_by_value(self.alpha*inputs+self.beta, 0, 1)
+        # return keras.activations.hard_sigmoid(inputs)
 
 @OPERATOR.register_operator("HardSwish")
 class TFHardSwish():
@@ -30,6 +32,7 @@ class TFHardSwish():
 
     def __call__(self, inputs):
         return inputs*tf.clip_by_value(inputs/6+0.5, 0, 1)
+        # return inputs*keras.activations.hard_sigmoid(inputs)
 
 @OPERATOR.register_operator("Mish")
 class TFMish():
