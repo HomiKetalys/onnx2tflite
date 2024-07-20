@@ -67,7 +67,7 @@ class ImageLoader(object):
         self.nums = len(self.fns)
         random.seed(0)
         assert self.nums > 0, f"No images detected in {img_root}."
-        val_num=1000
+        val_num=300
         if self.nums > val_num:
             LOG.warning(f"{self.nums} images detected, the number of recommended images is less than {val_num}.")
             # random.shuffle(self.fns)
