@@ -183,7 +183,7 @@ class TFUpsample():
 
     def __call__(self, inputs):
         bs, h, w, ch = inputs.shape
-        if self.method == tf.image.ResizeMethod.NEAREST_NEIGHBOR and self.scale[0] % h == 0 and self.scale[1] % w == 0 and os.environ['USE_PACK_FOR_RESIZE2']=="True":
+        if self.method == tf.image.ResizeMethod.NEAREST_NEIGHBOR and self.scale[0] % h == 0 and self.scale[1] % w == 0 and "DO_NOT_USE_PACK_FOR_RESIZE2" not in os.environ:
             inputs = tf.stack([inputs for i in range(0, self.scale[1] // w)], axis=3)
             inputs = tf.stack([inputs for i in range(0, self.scale[0] // h)], axis=2)
             inputs = tf.reshape(inputs, (bs, self.scale[0], self.scale[1], ch))
